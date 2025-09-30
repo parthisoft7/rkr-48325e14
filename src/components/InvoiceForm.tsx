@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, UserPlus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export interface InvoiceItem {
   id: string;
@@ -31,6 +38,9 @@ interface InvoiceFormProps {
 }
 
 export const InvoiceForm = ({ onDataChange }: InvoiceFormProps) => {
+  const [customers, setCustomers] = useState<
+    Array<{ id: string; name: string; address: string; phone: string }>
+  >([]);
   const [formData, setFormData] = useState<InvoiceData>({
     invoiceNo: "",
     invoiceDate: new Date().toISOString().split("T")[0],
@@ -52,10 +62,29 @@ export const InvoiceForm = ({ onDataChange }: InvoiceFormProps) => {
     advance: "0",
   });
 
+  useEffect(() => {
+    // Load customers from localStorage
+    const saved = localStorage.getItem("customers");
+    if (saved) {
+      setCustomers(JSON.parse(saved));
+    }
+  }, []);
+
   const updateFormData = (updates: Partial<InvoiceData>) => {
     const newData = { ...formData, ...updates };
     setFormData(newData);
     onDataChange(newData);
+  };
+
+  const handleCustomerSelect = (customerId: string) => {
+    const customer = customers.find((c) => c.id === customerId);
+    if (customer) {
+      updateFormData({
+        customerName: customer.name,
+        customerAddress: customer.address,
+        customerPhone: customer.phone,
+      });
+    }
   };
 
   const addItem = () => {
@@ -120,6 +149,22 @@ export const InvoiceForm = ({ onDataChange }: InvoiceFormProps) => {
       <Card className="p-6">
         <h2 className="text-xl font-semibold mb-4 text-foreground">Customer Details</h2>
         <div className="space-y-4">
+          <div>
+            <Label htmlFor="customerSelect">Select Existing Customer</Label>
+            <Select onValueChange={handleCustomerSelect}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a customer or enter manually" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
           <div>
             <Label htmlFor="customerName">Customer Name</Label>
             <Input
