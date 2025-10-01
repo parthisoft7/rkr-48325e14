@@ -17,18 +17,29 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
     return (
       <div ref={ref} className="bg-white p-8 shadow-lg" style={{ minHeight: "297mm" }}>
         {/* Company Header */}
-        <div className="mb-6 border-b-2 border-gray-300 pb-4">
+        <div className="mb-6 border-b-2 border-gray-300 pb-4 flex justify-center">
           <img
             src={companyHeader}
             alt="R.K.R. Transport & Travels"
-            className="w-full h-auto"
-            style={{ maxHeight: "120px", objectFit: "contain" }}
+            className="w-full h-auto object-contain"
+            style={{ maxHeight: "120px" }}
           />
         </div>
 
-        {/* Invoice Title and Details */}
+        {/* Customer and Invoice Details */}
         <div className="flex justify-between items-start mb-6">
+          {/* Customer Details - Left */}
           <div>
+            <h3 className="font-semibold text-gray-800 mb-2">Bill To:</h3>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p className="font-medium">{data.customerName || "N/A"}</p>
+              <p>{data.customerAddress || "N/A"}</p>
+              <p>{data.customerPhone || "N/A"}</p>
+            </div>
+          </div>
+
+          {/* Invoice Details - Right */}
+          <div className="text-right">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">INVOICE</h1>
             <div className="text-sm text-gray-600 space-y-1">
               <p>
@@ -40,16 +51,6 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                   ? new Date(data.invoiceDate).toLocaleDateString("en-IN")
                   : "N/A"}
               </p>
-            </div>
-          </div>
-
-          {/* Customer Details */}
-          <div className="text-right max-w-xs">
-            <h3 className="font-semibold text-gray-800 mb-2">Bill To:</h3>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p className="font-medium">{data.customerName || "N/A"}</p>
-              <p>{data.customerAddress || "N/A"}</p>
-              <p>{data.customerPhone || "N/A"}</p>
             </div>
           </div>
         </div>
