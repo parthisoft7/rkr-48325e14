@@ -1,8 +1,28 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Users, IndianRupee, TrendingUp, Plus } from "lucide-react";
+import { FileText, Users, IndianRupee, TrendingUp, Plus, Eye, Edit, Trash2, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { InvoicePreview } from "@/components/InvoicePreview";
+import { toast } from "sonner";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface DashboardStats {
   totalInvoices: number;
@@ -24,9 +44,11 @@ const Dashboard = () => {
     totalCustomers: 0,
     recentInvoices: [],
   });
+  const [viewInvoice, setViewInvoice] = useState<any>(null);
+  const [deleteInvoiceNo, setDeleteInvoiceNo] = useState<string | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Load data from localStorage
+  const loadStats = () => {
     const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
     const customers = JSON.parse(localStorage.getItem("customers") || "[]");
 
@@ -36,7 +58,7 @@ const Dashboard = () => {
     );
 
     const recentInvoices = invoices
-      .slice(-5)
+      .slice(-10)
       .reverse()
       .map((inv: any) => ({
         invoiceNo: inv.invoiceNo,
@@ -51,7 +73,74 @@ const Dashboard = () => {
       totalCustomers: customers.length,
       recentInvoices,
     });
+  };
+
+  useEffect(() => {
+    loadStats();
   }, []);
+
+  const handleViewInvoice = (invoiceNo: string) => {
+    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+    const invoice = invoices.find((inv: any) => inv.invoiceNo === invoiceNo);
+    if (invoice) {
+      setViewInvoice(invoice);
+    }
+  };
+
+  const handleEditInvoice = (invoiceNo: string) => {
+    navigate(`/invoice?edit=${invoiceNo}`);
+  };
+
+  const handleDeleteInvoice = (invoiceNo: string) => {
+    setDeleteInvoiceNo(invoiceNo);
+  };
+
+  const confirmDelete = () => {
+    if (!deleteInvoiceNo) return;
+    
+    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+    const updatedInvoices = invoices.filter((inv: any) => inv.invoiceNo !== deleteInvoiceNo);
+    localStorage.setItem("invoices", JSON.stringify(updatedInvoices));
+    
+    toast.success("Invoice deleted successfully");
+    setDeleteInvoiceNo(null);
+    loadStats();
+  };
+
+  const handleDownloadPDF = async (invoice: any) => {
+    if (!previewRef.current) return;
+
+    try {
+      toast.loading("Generating PDF...");
+
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      pdf.save(`Invoice_${invoice.invoiceNo || "Draft"}.pdf`);
+
+      toast.dismiss();
+      toast.success("PDF downloaded successfully");
+    } catch (error) {
+      toast.dismiss();
+      toast.error("Failed to generate PDF. Please try again.");
+      console.error("PDF generation error:", error);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -134,6 +223,9 @@ const Dashboard = () => {
                   <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground">
                     Amount
                   </th>
+                  <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -150,12 +242,42 @@ const Dashboard = () => {
                         ? new Date(invoice.date).toLocaleDateString("en-IN")
                         : "N/A"}
                     </td>
-                    <td className="py-3 px-4 text-sm text-right font-medium text-foreground flex items-center justify-end gap-1">
-                      <IndianRupee className="h-4 w-4" />
-                      {invoice.amount.toLocaleString("en-IN", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                    <td className="py-3 px-4 text-sm text-right font-medium text-foreground">
+                      <div className="flex items-center justify-end gap-1">
+                        <IndianRupee className="h-4 w-4" />
+                        {invoice.amount.toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewInvoice(invoice.invoiceNo)}
+                          className="h-8 w-8"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditInvoice(invoice.invoiceNo)}
+                          className="h-8 w-8"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteInvoice(invoice.invoiceNo)}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -199,6 +321,50 @@ const Dashboard = () => {
           </div>
         </Card>
       </div>
+
+      {/* View Invoice Dialog */}
+      <Dialog open={!!viewInvoice} onOpenChange={() => setViewInvoice(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              Invoice Preview
+              {viewInvoice && (
+                <Button
+                  onClick={() => handleDownloadPDF(viewInvoice)}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download PDF
+                </Button>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {viewInvoice && (
+            <div className="bg-white rounded-lg">
+              <InvoicePreview ref={previewRef} data={viewInvoice} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteInvoiceNo} onOpenChange={() => setDeleteInvoiceNo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invoice</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete invoice {deleteInvoiceNo}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -6,10 +6,13 @@ import { Download, Eye, EyeOff, Save } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const Invoice = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editInvoiceNo = searchParams.get("edit");
+  
   const [invoiceData, setInvoiceData] = useState<InvoiceData>({
     invoiceNo: "",
     invoiceDate: new Date().toISOString().split("T")[0],
@@ -35,14 +38,26 @@ const Invoice = () => {
   const previewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Generate next invoice number
-    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-    const nextNumber = invoices.length + 1;
-    setInvoiceData((prev) => ({
-      ...prev,
-      invoiceNo: `INV-${String(nextNumber).padStart(4, "0")}`,
-    }));
-  }, []);
+    if (editInvoiceNo) {
+      // Load existing invoice for editing
+      const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+      const invoice = invoices.find((inv: any) => inv.invoiceNo === editInvoiceNo);
+      if (invoice) {
+        setInvoiceData(invoice);
+      } else {
+        toast.error("Invoice not found");
+        navigate("/invoice");
+      }
+    } else {
+      // Generate next invoice number for new invoice
+      const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+      const nextNumber = invoices.length + 1;
+      setInvoiceData((prev) => ({
+        ...prev,
+        invoiceNo: `INV-${String(nextNumber).padStart(4, "0")}`,
+      }));
+    }
+  }, [editInvoiceNo, navigate]);
 
   const handleSaveInvoice = () => {
     if (!invoiceData.invoiceNo || !invoiceData.customerName) {
@@ -57,14 +72,26 @@ const Invoice = () => {
     const invoiceToSave = {
       ...invoiceData,
       total,
-      createdAt: new Date().toISOString(),
+      createdAt: editInvoiceNo ? invoiceData.createdAt || new Date().toISOString() : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-    invoices.push(invoiceToSave);
+    
+    if (editInvoiceNo) {
+      // Update existing invoice
+      const index = invoices.findIndex((inv: any) => inv.invoiceNo === editInvoiceNo);
+      if (index !== -1) {
+        invoices[index] = invoiceToSave;
+        toast.success("Invoice updated successfully");
+      }
+    } else {
+      // Create new invoice
+      invoices.push(invoiceToSave);
+      toast.success("Invoice saved successfully");
+    }
+    
     localStorage.setItem("invoices", JSON.stringify(invoices));
-
-    toast.success("Invoice saved successfully");
     setTimeout(() => navigate("/"), 1500);
   };
 
@@ -107,8 +134,12 @@ const Invoice = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Create Invoice</h1>
-          <p className="text-muted-foreground mt-1">Generate professional invoices</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            {editInvoiceNo ? "Edit Invoice" : "Create Invoice"}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {editInvoiceNo ? "Update invoice details" : "Generate professional invoices"}
+          </p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -131,7 +162,7 @@ const Invoice = () => {
           </Button>
           <Button onClick={handleSaveInvoice} variant="secondary" className="gap-2">
             <Save className="h-4 w-4" />
-            <span className="hidden sm:inline">Save Invoice</span>
+            <span className="hidden sm:inline">{editInvoiceNo ? "Update" : "Save"} Invoice</span>
           </Button>
           <Button onClick={handleDownloadPDF} className="gap-2">
             <Download className="h-4 w-4" />
@@ -143,7 +174,7 @@ const Invoice = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Form Section */}
         <div className="lg:max-h-[calc(100vh-180px)] lg:overflow-y-auto lg:pr-2">
-          <InvoiceForm onDataChange={setInvoiceData} />
+          <InvoiceForm onDataChange={setInvoiceData} initialData={invoiceData} />
         </div>
 
         {/* Preview Section */}

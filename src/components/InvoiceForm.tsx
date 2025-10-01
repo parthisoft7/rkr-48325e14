@@ -31,36 +31,42 @@ export interface InvoiceData {
   items: InvoiceItem[];
   oldBalance: string;
   advance: string;
+  createdAt?: string;
+  updatedAt?: string;
+  total?: number;
 }
 
 interface InvoiceFormProps {
   onDataChange: (data: InvoiceData) => void;
+  initialData?: InvoiceData;
 }
 
-export const InvoiceForm = ({ onDataChange }: InvoiceFormProps) => {
+export const InvoiceForm = ({ onDataChange, initialData }: InvoiceFormProps) => {
   const [customers, setCustomers] = useState<
     Array<{ id: string; name: string; address: string; phone: string }>
   >([]);
-  const [formData, setFormData] = useState<InvoiceData>({
-    invoiceNo: "",
-    invoiceDate: new Date().toISOString().split("T")[0],
-    customerName: "",
-    customerAddress: "",
-    customerPhone: "",
-    items: [
-      {
-        id: "1",
-        date: new Date().toISOString().split("T")[0],
-        vehicleNo: "",
-        description: "",
-        qtyKm: "",
-        rate: "",
-        amount: 0,
-      },
-    ],
-    oldBalance: "0",
-    advance: "0",
-  });
+  const [formData, setFormData] = useState<InvoiceData>(
+    initialData || {
+      invoiceNo: "",
+      invoiceDate: new Date().toISOString().split("T")[0],
+      customerName: "",
+      customerAddress: "",
+      customerPhone: "",
+      items: [
+        {
+          id: "1",
+          date: new Date().toISOString().split("T")[0],
+          vehicleNo: "",
+          description: "",
+          qtyKm: "",
+          rate: "",
+          amount: 0,
+        },
+      ],
+      oldBalance: "0",
+      advance: "0",
+    }
+  );
 
   useEffect(() => {
     // Load customers from localStorage
@@ -69,6 +75,13 @@ export const InvoiceForm = ({ onDataChange }: InvoiceFormProps) => {
       setCustomers(JSON.parse(saved));
     }
   }, []);
+
+  useEffect(() => {
+    // Update form data when initialData changes
+    if (initialData) {
+      setFormData(initialData);
+    }
+  }, [initialData]);
 
   const updateFormData = (updates: Partial<InvoiceData>) => {
     const newData = { ...formData, ...updates };
