@@ -61,25 +61,25 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-800 text-white">
-                <th className="border border-gray-400 px-3 py-2 text-left text-sm font-semibold">
+                <th className="border border-gray-400 px-2 py-2 text-left text-sm font-semibold w-12">
                   S.No
                 </th>
-                <th className="border border-gray-400 px-3 py-2 text-left text-sm font-semibold">
+                <th className="border border-gray-400 px-2 py-2 text-left text-sm font-semibold w-24">
                   Date
                 </th>
-                <th className="border border-gray-400 px-3 py-2 text-left text-sm font-semibold">
+                <th className="border border-gray-400 px-2 py-2 text-left text-sm font-semibold w-28">
                   Vehicle No
                 </th>
                 <th className="border border-gray-400 px-3 py-2 text-left text-sm font-semibold">
                   Description
                 </th>
-                <th className="border border-gray-400 px-3 py-2 text-right text-sm font-semibold">
+                <th className="border border-gray-400 px-2 py-2 text-right text-sm font-semibold w-20">
                   Qty/Km
                 </th>
-                <th className="border border-gray-400 px-3 py-2 text-right text-sm font-semibold">
+                <th className="border border-gray-400 px-2 py-2 text-right text-sm font-semibold w-24">
                   Rate (₹)
                 </th>
-                <th className="border border-gray-400 px-3 py-2 text-right text-sm font-semibold">
+                <th className="border border-gray-400 px-2 py-2 text-right text-sm font-semibold w-28">
                   Amount (₹)
                 </th>
               </tr>
@@ -87,25 +87,25 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
             <tbody>
               {data.items.map((item, index) => (
                 <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
+                  <td className="border border-gray-300 px-2 py-2 text-sm text-gray-700">
                     {index + 1}
                   </td>
-                  <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
+                  <td className="border border-gray-300 px-2 py-2 text-sm text-gray-700">
                     {item.date ? format(new Date(item.date), "dd-MM-yyyy") : "N/A"}
                   </td>
-                  <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
+                  <td className="border border-gray-300 px-2 py-2 text-sm text-gray-700">
                     {item.vehicleNo || "N/A"}
                   </td>
                   <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
                     {item.description || "N/A"}
                   </td>
-                  <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700 text-right">
+                  <td className="border border-gray-300 px-2 py-2 text-sm text-gray-700 text-right">
                     {item.qtyKm || "0"}
                   </td>
-                  <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700 text-right">
+                  <td className="border border-gray-300 px-2 py-2 text-sm text-gray-700 text-right">
                     {parseFloat(item.rate || "0").toFixed(2)}
                   </td>
-                  <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700 text-right font-medium">
+                  <td className="border border-gray-300 px-2 py-2 text-sm text-gray-700 text-right font-medium">
                     {item.amount.toFixed(2)}
                   </td>
                 </tr>
