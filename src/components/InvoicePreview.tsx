@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import { format } from "date-fns";
 import { InvoiceData } from "./InvoiceForm";
 import companyHeader from "@/assets/company-header.png";
 import signature from "@/assets/signature.png";
@@ -48,7 +49,7 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
               <p>
                 <span className="font-semibold">Invoice Date:</span>{" "}
                 {data.invoiceDate
-                  ? new Date(data.invoiceDate).toLocaleDateString("en-IN")
+                  ? format(new Date(data.invoiceDate), "dd-MM-yyyy")
                   : "N/A"}
               </p>
             </div>
@@ -90,7 +91,7 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
                     {index + 1}
                   </td>
                   <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
-                    {item.date ? new Date(item.date).toLocaleDateString("en-IN") : "N/A"}
+                    {item.date ? format(new Date(item.date), "dd-MM-yyyy") : "N/A"}
                   </td>
                   <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
                     {item.vehicleNo || "N/A"}
