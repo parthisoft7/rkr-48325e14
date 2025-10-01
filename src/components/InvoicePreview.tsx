@@ -165,15 +165,14 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
         {/* Signature */}
         <div className="flex justify-end mt-12">
           <div className="text-center">
+            <p className="text-sm font-semibold text-gray-800 mb-3">For RKR TRANSPORT AND TRAVELS</p>
             <img
               src={signature}
               alt="Authorized Signature"
               className="h-16 mb-2"
               style={{ maxWidth: "150px" }}
             />
-            <div className="border-t border-gray-800 pt-2">
-              <p className="text-sm font-semibold text-gray-800">Authorized Signatory</p>
-            </div>
+            <p className="text-sm font-semibold text-gray-800">Authorized Signatory</p>
           </div>
         </div>
       </div>
