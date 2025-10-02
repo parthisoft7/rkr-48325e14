@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { InvoiceForm, InvoiceData } from "@/components/InvoiceForm";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, EyeOff, Save } from "lucide-react";
+import { Download, Eye, EyeOff, Save, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -132,6 +132,42 @@ const Invoice = () => {
     }
   };
 
+  const handleShareInvoice = async () => {
+    if (!invoiceData.invoiceNo || !invoiceData.customerName) {
+      toast.error("Please save the invoice before sharing");
+      return;
+    }
+
+    const shareText = `Invoice ${invoiceData.invoiceNo} for ${invoiceData.customerName}`;
+    const shareUrl = `${window.location.origin}/invoice?edit=${invoiceData.invoiceNo}`;
+
+    // Check if Web Share API is available (mostly mobile devices)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareText,
+          text: `View invoice details: ${shareText}`,
+          url: shareUrl,
+        });
+        toast.success("Invoice shared successfully");
+      } catch (error) {
+        // User cancelled the share
+        if ((error as Error).name !== "AbortError") {
+          console.error("Error sharing:", error);
+        }
+      }
+    } else {
+      // Fallback: Copy link to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Invoice link copied to clipboard");
+      } catch (error) {
+        toast.error("Failed to copy link");
+        console.error("Copy error:", error);
+      }
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="space-y-4">
@@ -165,6 +201,10 @@ const Invoice = () => {
           <Button onClick={handleSaveInvoice} variant="secondary" className="gap-2 flex-1 sm:flex-none">
             <Save className="h-4 w-4" />
             <span>{editInvoiceNo ? "Update" : "Save"}</span>
+          </Button>
+          <Button onClick={handleShareInvoice} variant="outline" className="gap-2 flex-1 sm:flex-none">
+            <Share2 className="h-4 w-4" />
+            <span>Share</span>
           </Button>
           <Button onClick={handleDownloadPDF} className="gap-2 flex-1 sm:flex-none">
             <Download className="h-4 w-4" />
