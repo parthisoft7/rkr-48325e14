@@ -101,15 +101,25 @@ const Invoice = () => {
     try {
       toast.loading("Generating PDF...");
 
+      // Get the full scrollable height
+      const element = previewRef.current;
+      const originalHeight = element.style.height;
+      element.style.height = 'auto';
+      
       // Capture the full invoice at high quality
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 3, // High quality for both mobile and desktop
+      const canvas = await html2canvas(element, {
+        scale: 2.5,
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
-        windowWidth: 1240, // Fixed width for consistent A4 rendering
-        windowHeight: previewRef.current.scrollHeight,
+        scrollY: -window.scrollY,
+        scrollX: -window.scrollX,
+        width: element.scrollWidth,
+        height: element.scrollHeight,
       });
+
+      // Restore original height
+      element.style.height = originalHeight;
 
       const imgData = canvas.toDataURL("image/png", 1.0);
       const pdf = new jsPDF({
