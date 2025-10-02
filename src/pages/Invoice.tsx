@@ -101,26 +101,45 @@ const Invoice = () => {
     try {
       toast.loading("Generating PDF...");
 
+      // Capture the full invoice at high quality
       const canvas = await html2canvas(previewRef.current, {
-        scale: window.innerWidth < 768 ? 1.5 : 2,
+        scale: 3, // High quality for both mobile and desktop
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
-        windowWidth: previewRef.current.scrollWidth,
+        windowWidth: 1240, // Fixed width for consistent A4 rendering
         windowHeight: previewRef.current.scrollHeight,
       });
 
-      const imgData = canvas.toDataURL("image/png");
+      const imgData = canvas.toDataURL("image/png", 1.0);
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      // A4 dimensions in mm
+      const pdfWidth = 210;
+      const pdfHeight = 297;
+      
+      // Calculate image dimensions to fit A4
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      // Add pages if content is longer than one A4 page
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
       pdf.save(`Invoice_${invoiceData.invoiceNo || "Draft"}.pdf`);
 
       toast.dismiss();
