@@ -18,12 +18,11 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
     return (
       <div ref={ref} className="bg-white p-8 shadow-lg" style={{ minHeight: "297mm" }}>
         {/* Company Header */}
-        <div className="mb-6 border-b-2 border-gray-300 pb-4 flex justify-center">
+        <div className="mb-6 border-b-2 border-gray-300 pb-4">
           <img
             src={companyHeader}
             alt="R.K.R. Transport & Travels"
-            className="w-full h-auto object-contain"
-            style={{ maxHeight: "120px" }}
+            className="w-full h-auto object-cover"
           />
         </div>
 
