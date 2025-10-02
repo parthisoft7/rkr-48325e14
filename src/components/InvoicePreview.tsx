@@ -141,26 +141,22 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
         {/* Bank Details */}
         <div className="border-t-2 border-gray-300 pt-6 mb-8">
           <h3 className="font-bold text-gray-800 mb-3">Bank/Payment Details:</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
-            <div>
-              <p>
-                <span className="font-semibold">Bank Name:</span> Union Bank of India
-              </p>
-              <p>
-                <span className="font-semibold">Branch Name:</span> Chamiers Road
-              </p>
-              <p>
-                <span className="font-semibold">Account No:</span> 332301010050547
-              </p>
-            </div>
-            <div>
-              <p>
-                <span className="font-semibold">IFSC Code:</span> UBIN0533238
-              </p>
-              <p>
-                <span className="font-semibold">Google Pay:</span> 89399-15816
-              </p>
-            </div>
+          <div className="text-sm text-gray-700 space-y-1">
+            <p>
+              <span className="font-semibold">Bank Name:</span> Union Bank of India
+            </p>
+            <p>
+              <span className="font-semibold">Branch Name:</span> Chamiers Road
+            </p>
+            <p>
+              <span className="font-semibold">Account No:</span> 332301010050547
+            </p>
+            <p>
+              <span className="font-semibold">IFSC Code:</span> UBIN0533238
+            </p>
+            <p>
+              <span className="font-semibold">Google Pay:</span> 89399-15816
+            </p>
           </div>
         </div>
 
