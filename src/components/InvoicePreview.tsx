@@ -16,7 +16,7 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
     const total = subtotal + oldBalance - advance;
 
     return (
-      <div ref={ref} className="bg-white p-8 shadow-lg" style={{ minHeight: "297mm" }}>
+      <div ref={ref} className="bg-white p-4 sm:p-6 md:p-8 shadow-lg" style={{ minHeight: "297mm" }}>
         {/* Company Header */}
         <div className="mb-6 border-b-2 border-gray-300 pb-4">
           <img

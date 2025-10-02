@@ -102,10 +102,12 @@ const Invoice = () => {
       toast.loading("Generating PDF...");
 
       const canvas = await html2canvas(previewRef.current, {
-        scale: 2,
+        scale: window.innerWidth < 768 ? 1.5 : 2,
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
+        windowWidth: previewRef.current.scrollWidth,
+        windowHeight: previewRef.current.scrollHeight,
       });
 
       const imgData = canvas.toDataURL("image/png");
@@ -131,42 +133,42 @@ const Invoice = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             {editInvoiceNo ? "Edit Invoice" : "Create Invoice"}
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             {editInvoiceNo ? "Update invoice details" : "Generate professional invoices"}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowPreview(!showPreview)}
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-none"
           >
             {showPreview ? (
               <>
                 <EyeOff className="h-4 w-4" />
-                <span className="hidden sm:inline">Hide Preview</span>
+                <span>Hide Preview</span>
               </>
             ) : (
               <>
                 <Eye className="h-4 w-4" />
-                <span className="hidden sm:inline">Show Preview</span>
+                <span>Show Preview</span>
               </>
             )}
           </Button>
-          <Button onClick={handleSaveInvoice} variant="secondary" className="gap-2">
+          <Button onClick={handleSaveInvoice} variant="secondary" className="gap-2 flex-1 sm:flex-none">
             <Save className="h-4 w-4" />
-            <span className="hidden sm:inline">{editInvoiceNo ? "Update" : "Save"} Invoice</span>
+            <span>{editInvoiceNo ? "Update" : "Save"}</span>
           </Button>
-          <Button onClick={handleDownloadPDF} className="gap-2">
+          <Button onClick={handleDownloadPDF} className="gap-2 flex-1 sm:flex-none">
             <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Download PDF</span>
+            <span>Download</span>
           </Button>
         </div>
       </div>
