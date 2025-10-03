@@ -185,7 +185,7 @@ const Invoice = () => {
     
     const shareText = `*Invoice ${invoiceData.invoiceNo}*\n\nCustomer: ${invoiceData.customerName}\nDate: ${invoiceData.invoiceDate}\nTotal Amount: ₹${total.toFixed(2)}\n\nView invoice: ${window.location.origin}/invoice?edit=${invoiceData.invoiceNo}`;
     
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+    const whatsappUrl = `https://web.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
     
     window.open(whatsappUrl, '_blank');
     toast.success("Opening WhatsApp...");
