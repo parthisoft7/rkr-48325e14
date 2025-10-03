@@ -180,34 +180,15 @@ const Invoice = () => {
       return;
     }
 
-    const shareText = `Invoice ${invoiceData.invoiceNo} for ${invoiceData.customerName}`;
-    const shareUrl = `${window.location.origin}/invoice?edit=${invoiceData.invoiceNo}`;
-
-    // Check if Web Share API is available (mostly mobile devices)
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: shareText,
-          text: `View invoice details: ${shareText}`,
-          url: shareUrl,
-        });
-        toast.success("Invoice shared successfully");
-      } catch (error) {
-        // User cancelled the share
-        if ((error as Error).name !== "AbortError") {
-          console.error("Error sharing:", error);
-        }
-      }
-    } else {
-      // Fallback: Copy link to clipboard
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        toast.success("Invoice link copied to clipboard");
-      } catch (error) {
-        toast.error("Failed to copy link");
-        console.error("Copy error:", error);
-      }
-    }
+    const subtotal = invoiceData.items.reduce((sum, item) => sum + item.amount, 0);
+    const total = subtotal + parseFloat(invoiceData.oldBalance || "0") - parseFloat(invoiceData.advance || "0");
+    
+    const shareText = `*Invoice ${invoiceData.invoiceNo}*\n\nCustomer: ${invoiceData.customerName}\nDate: ${invoiceData.invoiceDate}\nTotal Amount: ₹${total.toFixed(2)}\n\nView invoice: ${window.location.origin}/invoice?edit=${invoiceData.invoiceNo}`;
+    
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+    
+    window.open(whatsappUrl, '_blank');
+    toast.success("Opening WhatsApp...");
   };
 
   return (
