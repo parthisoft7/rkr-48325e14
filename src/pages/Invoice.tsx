@@ -105,21 +105,29 @@ const Invoice = () => {
       const originalElement = previewRef.current;
       const clonedElement = originalElement.cloneNode(true) as HTMLElement;
       
+      // Create a wrapper with fixed desktop dimensions
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'absolute';
+      wrapper.style.left = '-9999px';
+      wrapper.style.top = '0';
+      wrapper.style.width = '1240px';
+      wrapper.style.minWidth = '1240px';
+      wrapper.style.maxWidth = '1240px';
+      
       // Style the clone for desktop capture
-      clonedElement.style.position = 'absolute';
-      clonedElement.style.left = '-9999px';
-      clonedElement.style.top = '0';
-      clonedElement.style.width = '1240px';
-      clonedElement.style.minWidth = '1240px';
-      clonedElement.style.maxWidth = '1240px';
+      clonedElement.style.width = '100%';
+      clonedElement.style.minWidth = '100%';
+      clonedElement.style.maxWidth = '100%';
       clonedElement.style.height = 'auto';
       clonedElement.style.overflow = 'visible';
+      clonedElement.style.transform = 'scale(1)';
       
-      // Append to body to ensure it's not constrained by parent containers
-      document.body.appendChild(clonedElement);
+      // Append to wrapper and then to body
+      wrapper.appendChild(clonedElement);
+      document.body.appendChild(wrapper);
       
-      // Wait a moment for rendering
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for rendering and layout
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Capture the cloned element at desktop width
       const canvas = await html2canvas(clonedElement, {
@@ -128,11 +136,11 @@ const Invoice = () => {
         logging: false,
         backgroundColor: "#ffffff",
         width: 1240,
-        height: clonedElement.scrollHeight,
+        windowWidth: 1240,
       });
 
-      // Remove the cloned element
-      document.body.removeChild(clonedElement);
+      // Remove the wrapper and cloned element
+      document.body.removeChild(wrapper);
 
       const imgData = canvas.toDataURL("image/png", 1.0);
       const pdf = new jsPDF({
