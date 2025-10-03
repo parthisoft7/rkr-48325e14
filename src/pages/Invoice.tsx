@@ -101,32 +101,38 @@ const Invoice = () => {
     try {
       toast.loading("Generating PDF...");
 
-      // Force desktop layout for consistent PDF structure
-      const element = previewRef.current;
-      const originalHeight = element.style.height;
-      const originalWidth = element.style.width;
-      const originalMinWidth = element.style.minWidth;
+      // Clone the element and render it off-screen at desktop width
+      const originalElement = previewRef.current;
+      const clonedElement = originalElement.cloneNode(true) as HTMLElement;
       
-      element.style.height = 'auto';
-      element.style.width = '1240px';
-      element.style.minWidth = '1240px';
+      // Style the clone for desktop capture
+      clonedElement.style.position = 'absolute';
+      clonedElement.style.left = '-9999px';
+      clonedElement.style.top = '0';
+      clonedElement.style.width = '1240px';
+      clonedElement.style.minWidth = '1240px';
+      clonedElement.style.maxWidth = '1240px';
+      clonedElement.style.height = 'auto';
+      clonedElement.style.overflow = 'visible';
       
-      // Capture the full invoice at high quality with fixed desktop width
-      const canvas = await html2canvas(element, {
+      // Append to body to ensure it's not constrained by parent containers
+      document.body.appendChild(clonedElement);
+      
+      // Wait a moment for rendering
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Capture the cloned element at desktop width
+      const canvas = await html2canvas(clonedElement, {
         scale: 2.5,
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
-        scrollY: -window.scrollY,
-        scrollX: -window.scrollX,
         width: 1240,
-        height: element.scrollHeight,
+        height: clonedElement.scrollHeight,
       });
 
-      // Restore original styles
-      element.style.height = originalHeight;
-      element.style.width = originalWidth;
-      element.style.minWidth = originalMinWidth;
+      // Remove the cloned element
+      document.body.removeChild(clonedElement);
 
       const imgData = canvas.toDataURL("image/png", 1.0);
       const pdf = new jsPDF({
