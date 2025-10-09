@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const Invoice = () => {
   const navigate = useNavigate();
@@ -38,28 +39,67 @@ const Invoice = () => {
   const previewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (editInvoiceNo) {
-      // Load existing invoice for editing
-      const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-      const invoice = invoices.find((inv: any) => inv.invoiceNo === editInvoiceNo);
-      if (invoice) {
-        setInvoiceData(invoice);
+    const loadInvoice = async () => {
+      if (editInvoiceNo) {
+        // Load existing invoice for editing
+        try {
+          const { data, error } = await supabase
+            .from("invoices")
+            .select("*, invoice_items(*)")
+            .eq("invoice_no", editInvoiceNo)
+            .single();
+
+          if (error) throw error;
+
+          if (data) {
+            setInvoiceData({
+              invoiceNo: data.invoice_no,
+              invoiceDate: data.invoice_date,
+              customerName: data.customer_name,
+              customerAddress: data.customer_address,
+              customerPhone: data.customer_phone,
+              oldBalance: data.old_balance?.toString() || "0",
+              advance: data.advance?.toString() || "0",
+              items: (data.invoice_items || []).map((item: any) => ({
+                id: item.id,
+                date: item.date,
+                vehicleNo: item.vehicle_no || "",
+                description: item.description || "",
+                qtyKm: item.qty_km?.toString() || "",
+                rate: item.rate?.toString() || "",
+                amount: item.amount || 0,
+              })),
+            });
+          }
+        } catch (error: any) {
+          console.error("Failed to load invoice:", error);
+          toast.error("Invoice not found");
+          navigate("/invoice");
+        }
       } else {
-        toast.error("Invoice not found");
-        navigate("/invoice");
+        // Generate next invoice number for new invoice
+        try {
+          const { count, error } = await supabase
+            .from("invoices")
+            .select("*", { count: "exact", head: true });
+
+          if (error) throw error;
+
+          const nextNumber = (count || 0) + 1;
+          setInvoiceData((prev) => ({
+            ...prev,
+            invoiceNo: `INV-${String(nextNumber).padStart(4, "0")}`,
+          }));
+        } catch (error) {
+          console.error("Failed to generate invoice number:", error);
+        }
       }
-    } else {
-      // Generate next invoice number for new invoice
-      const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-      const nextNumber = invoices.length + 1;
-      setInvoiceData((prev) => ({
-        ...prev,
-        invoiceNo: `INV-${String(nextNumber).padStart(4, "0")}`,
-      }));
-    }
+    };
+
+    loadInvoice();
   }, [editInvoiceNo, navigate]);
 
-  const handleSaveInvoice = () => {
+  const handleSaveInvoice = async () => {
     if (!invoiceData.invoiceNo || !invoiceData.customerName) {
       toast.error("Please fill in invoice number and customer name");
       return;
@@ -69,30 +109,104 @@ const Invoice = () => {
     const total =
       subtotal + parseFloat(invoiceData.oldBalance || "0") - parseFloat(invoiceData.advance || "0");
 
-    const invoiceToSave = {
-      ...invoiceData,
-      total,
-      createdAt: editInvoiceNo ? invoiceData.createdAt || new Date().toISOString() : new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-    
-    if (editInvoiceNo) {
-      // Update existing invoice
-      const index = invoices.findIndex((inv: any) => inv.invoiceNo === editInvoiceNo);
-      if (index !== -1) {
-        invoices[index] = invoiceToSave;
+      if (editInvoiceNo) {
+        // Update existing invoice
+        const { data: existingInvoice, error: fetchError } = await supabase
+          .from("invoices")
+          .select("id")
+          .eq("invoice_no", editInvoiceNo)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        const { error: updateError } = await supabase
+          .from("invoices")
+          .update({
+            invoice_date: invoiceData.invoiceDate,
+            customer_name: invoiceData.customerName,
+            customer_address: invoiceData.customerAddress,
+            customer_phone: invoiceData.customerPhone,
+            old_balance: parseFloat(invoiceData.oldBalance || "0"),
+            advance: parseFloat(invoiceData.advance || "0"),
+            total,
+          })
+          .eq("id", existingInvoice.id);
+
+        if (updateError) throw updateError;
+
+        // Delete existing items and insert new ones
+        const { error: deleteError } = await supabase
+          .from("invoice_items")
+          .delete()
+          .eq("invoice_id", existingInvoice.id);
+
+        if (deleteError) throw deleteError;
+
+        const { error: itemsError } = await supabase
+          .from("invoice_items")
+          .insert(
+            invoiceData.items.map((item) => ({
+              invoice_id: existingInvoice.id,
+              date: item.date,
+              vehicle_no: item.vehicleNo,
+              description: item.description,
+              qty_km: parseFloat(item.qtyKm || "0"),
+              rate: parseFloat(item.rate || "0"),
+              amount: item.amount,
+            }))
+          );
+
+        if (itemsError) throw itemsError;
+
         toast.success("Invoice updated successfully");
+      } else {
+        // Create new invoice
+        const { data: newInvoice, error: invoiceError } = await supabase
+          .from("invoices")
+          .insert({
+            user_id: user.id,
+            invoice_no: invoiceData.invoiceNo,
+            invoice_date: invoiceData.invoiceDate,
+            customer_name: invoiceData.customerName,
+            customer_address: invoiceData.customerAddress,
+            customer_phone: invoiceData.customerPhone,
+            old_balance: parseFloat(invoiceData.oldBalance || "0"),
+            advance: parseFloat(invoiceData.advance || "0"),
+            total,
+          })
+          .select()
+          .single();
+
+        if (invoiceError) throw invoiceError;
+
+        const { error: itemsError } = await supabase
+          .from("invoice_items")
+          .insert(
+            invoiceData.items.map((item) => ({
+              invoice_id: newInvoice.id,
+              date: item.date,
+              vehicle_no: item.vehicleNo,
+              description: item.description,
+              qty_km: parseFloat(item.qtyKm || "0"),
+              rate: parseFloat(item.rate || "0"),
+              amount: item.amount,
+            }))
+          );
+
+        if (itemsError) throw itemsError;
+
+        toast.success("Invoice saved successfully");
       }
-    } else {
-      // Create new invoice
-      invoices.push(invoiceToSave);
-      toast.success("Invoice saved successfully");
+
+      setTimeout(() => navigate("/"), 1500);
+    } catch (error: any) {
+      console.error("Failed to save invoice:", error);
+      toast.error(error.message || "Failed to save invoice");
     }
-    
-    localStorage.setItem("invoices", JSON.stringify(invoices));
-    setTimeout(() => navigate("/"), 1500);
   };
 
   const handleDownloadPDF = async () => {

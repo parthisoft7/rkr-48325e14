@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Plus, Trash2, UserPlus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
   SelectContent,
@@ -69,12 +70,23 @@ export const InvoiceForm = ({ onDataChange, initialData }: InvoiceFormProps) => 
   );
 
   useEffect(() => {
-    // Load customers from localStorage
-    const saved = localStorage.getItem("customers");
-    if (saved) {
-      setCustomers(JSON.parse(saved));
-    }
+    // Load customers from database
+    loadCustomers();
   }, []);
+
+  const loadCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, name, address, phone")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setCustomers(data || []);
+    } catch (error) {
+      console.error("Failed to load customers:", error);
+    }
+  };
 
   useEffect(() => {
     // Update form data when initialData changes

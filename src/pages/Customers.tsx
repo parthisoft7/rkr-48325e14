@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Edit, Save, X } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Customer {
   id: string;
@@ -23,24 +24,28 @@ const Customers = () => {
     phone: "",
     email: "",
   });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadCustomers();
   }, []);
 
-  const loadCustomers = () => {
-    const saved = localStorage.getItem("customers");
-    if (saved) {
-      setCustomers(JSON.parse(saved));
+  const loadCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setCustomers(data || []);
+    } catch (error: any) {
+      toast.error("Failed to load customers");
+      console.error(error);
     }
   };
 
-  const saveCustomers = (updatedCustomers: Customer[]) => {
-    localStorage.setItem("customers", JSON.stringify(updatedCustomers));
-    setCustomers(updatedCustomers);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name || !formData.address || !formData.phone) {
@@ -48,25 +53,51 @@ const Customers = () => {
       return;
     }
 
-    if (editingId) {
-      // Update existing customer
-      const updated = customers.map((c) =>
-        c.id === editingId ? { ...formData, id: editingId } : c
-      );
-      saveCustomers(updated);
-      toast.success("Customer updated successfully");
-      setEditingId(null);
-    } else {
-      // Add new customer
-      const newCustomer: Customer = {
-        ...formData,
-        id: Date.now().toString(),
-      };
-      saveCustomers([...customers, newCustomer]);
-      toast.success("Customer added successfully");
-    }
+    setLoading(true);
 
-    setFormData({ name: "", address: "", phone: "", email: "" });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      if (editingId) {
+        // Update existing customer
+        const { error } = await supabase
+          .from("customers")
+          .update({
+            name: formData.name,
+            address: formData.address,
+            phone: formData.phone,
+            email: formData.email || null,
+          })
+          .eq("id", editingId);
+
+        if (error) throw error;
+        toast.success("Customer updated successfully");
+        setEditingId(null);
+      } else {
+        // Add new customer
+        const { error } = await supabase
+          .from("customers")
+          .insert({
+            user_id: user.id,
+            name: formData.name,
+            address: formData.address,
+            phone: formData.phone,
+            email: formData.email || null,
+          });
+
+        if (error) throw error;
+        toast.success("Customer added successfully");
+      }
+
+      setFormData({ name: "", address: "", phone: "", email: "" });
+      loadCustomers();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save customer");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = (customer: Customer) => {
@@ -79,11 +110,21 @@ const Customers = () => {
     setEditingId(customer.id);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this customer?")) {
-      const updated = customers.filter((c) => c.id !== id);
-      saveCustomers(updated);
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this customer?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("customers")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
       toast.success("Customer deleted successfully");
+      loadCustomers();
+    } catch (error: any) {
+      toast.error("Failed to delete customer");
+      console.error(error);
     }
   };
 
@@ -157,16 +198,16 @@ const Customers = () => {
           </div>
 
           <div className="flex gap-2">
-            <Button type="submit" className="gap-2">
+            <Button type="submit" className="gap-2" disabled={loading}>
               {editingId ? (
                 <>
                   <Save className="h-4 w-4" />
-                  Update Customer
+                  {loading ? "Updating..." : "Update Customer"}
                 </>
               ) : (
                 <>
                   <Plus className="h-4 w-4" />
-                  Add Customer
+                  {loading ? "Adding..." : "Add Customer"}
                 </>
               )}
             </Button>

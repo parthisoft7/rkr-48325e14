@@ -7,6 +7,7 @@ import { InvoicePreview } from "@/components/InvoicePreview";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -48,42 +49,85 @@ const Dashboard = () => {
   const [deleteInvoiceNo, setDeleteInvoiceNo] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const loadStats = () => {
-    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-    const customers = JSON.parse(localStorage.getItem("customers") || "[]");
+  const loadStats = async () => {
+    try {
+      const { data: invoices, error: invoicesError } = await supabase
+        .from("invoices")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    const totalRevenue = invoices.reduce(
-      (sum: number, inv: any) => sum + (inv.total || 0),
-      0
-    );
+      const { data: customers, error: customersError } = await supabase
+        .from("customers")
+        .select("id");
 
-    const recentInvoices = invoices
-      .slice(-10)
-      .reverse()
-      .map((inv: any) => ({
-        invoiceNo: inv.invoiceNo,
-        customerName: inv.customerName,
-        amount: inv.total,
-        date: inv.invoiceDate,
-      }));
+      if (invoicesError) throw invoicesError;
+      if (customersError) throw customersError;
 
-    setStats({
-      totalInvoices: invoices.length,
-      totalRevenue,
-      totalCustomers: customers.length,
-      recentInvoices,
-    });
+      const totalRevenue = (invoices || []).reduce(
+        (sum: number, inv: any) => sum + (inv.total || 0),
+        0
+      );
+
+      const recentInvoices = (invoices || [])
+        .slice(0, 10)
+        .map((inv: any) => ({
+          invoiceNo: inv.invoice_no,
+          customerName: inv.customer_name,
+          amount: inv.total,
+          date: inv.invoice_date,
+        }));
+
+      setStats({
+        totalInvoices: invoices?.length || 0,
+        totalRevenue,
+        totalCustomers: customers?.length || 0,
+        recentInvoices,
+      });
+    } catch (error: any) {
+      console.error("Failed to load stats:", error);
+      toast.error("Failed to load dashboard data");
+    }
   };
 
   useEffect(() => {
     loadStats();
   }, []);
 
-  const handleViewInvoice = (invoiceNo: string) => {
-    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-    const invoice = invoices.find((inv: any) => inv.invoiceNo === invoiceNo);
-    if (invoice) {
+  const handleViewInvoice = async (invoiceNo: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("*, invoice_items(*)")
+        .eq("invoice_no", invoiceNo)
+        .single();
+
+      if (error) throw error;
+      
+      // Transform data to match the expected format
+      const invoice = {
+        invoiceNo: data.invoice_no,
+        invoiceDate: data.invoice_date,
+        customerName: data.customer_name,
+        customerAddress: data.customer_address,
+        customerPhone: data.customer_phone,
+        oldBalance: data.old_balance?.toString() || "0",
+        advance: data.advance?.toString() || "0",
+        total: data.total,
+        items: (data.invoice_items || []).map((item: any) => ({
+          id: item.id,
+          date: item.date,
+          vehicleNo: item.vehicle_no || "",
+          description: item.description || "",
+          qtyKm: item.qty_km?.toString() || "",
+          rate: item.rate?.toString() || "",
+          amount: item.amount || 0,
+        })),
+      };
+      
       setViewInvoice(invoice);
+    } catch (error: any) {
+      console.error("Failed to load invoice:", error);
+      toast.error("Failed to load invoice");
     }
   };
 
@@ -95,16 +139,24 @@ const Dashboard = () => {
     setDeleteInvoiceNo(invoiceNo);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteInvoiceNo) return;
     
-    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-    const updatedInvoices = invoices.filter((inv: any) => inv.invoiceNo !== deleteInvoiceNo);
-    localStorage.setItem("invoices", JSON.stringify(updatedInvoices));
-    
-    toast.success("Invoice deleted successfully");
-    setDeleteInvoiceNo(null);
-    loadStats();
+    try {
+      const { error } = await supabase
+        .from("invoices")
+        .delete()
+        .eq("invoice_no", deleteInvoiceNo);
+
+      if (error) throw error;
+      
+      toast.success("Invoice deleted successfully");
+      setDeleteInvoiceNo(null);
+      loadStats();
+    } catch (error: any) {
+      console.error("Failed to delete invoice:", error);
+      toast.error("Failed to delete invoice");
+    }
   };
 
   const handleDownloadPDF = async (invoice: any) => {
