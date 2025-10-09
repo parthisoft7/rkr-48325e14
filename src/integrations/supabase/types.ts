@@ -14,7 +14,139 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      customers: {
+        Row: {
+          address: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      invoice_items: {
+        Row: {
+          amount: number | null
+          created_at: string
+          date: string | null
+          description: string | null
+          id: string
+          invoice_id: string
+          qty_km: number | null
+          rate: number | null
+          vehicle_no: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          id?: string
+          invoice_id: string
+          qty_km?: number | null
+          rate?: number | null
+          vehicle_no?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          id?: string
+          invoice_id?: string
+          qty_km?: number | null
+          rate?: number | null
+          vehicle_no?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          advance: number | null
+          created_at: string
+          customer_address: string
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string
+          id: string
+          invoice_date: string
+          invoice_no: string
+          old_balance: number | null
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          advance?: number | null
+          created_at?: string
+          customer_address: string
+          customer_id?: string | null
+          customer_name: string
+          customer_phone: string
+          id?: string
+          invoice_date: string
+          invoice_no: string
+          old_balance?: number | null
+          total: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          advance?: number | null
+          created_at?: string
+          customer_address?: string
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          invoice_date?: string
+          invoice_no?: string
+          old_balance?: number | null
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
